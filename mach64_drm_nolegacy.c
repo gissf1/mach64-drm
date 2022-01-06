@@ -878,6 +878,17 @@ int mach64_drm_legacy_mmap(struct file *filp, struct vm_area_struct *vma)
 	return ret;
 }
 
+void mach64_drm_legacy_vma_flush(struct drm_device *dev)
+{
+	struct mach64_drm_vma_entry *vma, *vma_temp;
+
+	/ * Clear vma list (only needed for legacy drivers) * /
+	list_for_each_entry_safe(vma, vma_temp, &dev->vmalist, head) {
+		list_del(&vma->head);
+		kfree(vma);
+	}
+}
+
 #endif
 
 #endif
