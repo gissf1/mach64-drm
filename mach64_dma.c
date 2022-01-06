@@ -840,7 +840,11 @@ static int mach64_bm_dma_test(struct drm_device * dev)
 	/* FIXME: get a dma buffer from the freelist here */
 	DRM_DEBUG("Allocating data memory ...\n");
 	cpu_addr_dmah =
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
 	    drm_pci_alloc(dev, 0x1000, 0x1000);
+#else
+	    mach64_drm_pci_alloc(dev, 0x1000, 0x1000);
+#endif
 	if (!cpu_addr_dmah) {
 		DRM_INFO("data-memory allocation failed!\n");
 		return -ENOMEM;
@@ -874,7 +878,11 @@ static int mach64_bm_dma_test(struct drm_device * dev)
 			DRM_INFO("resetting engine ...\n");
 			mach64_do_engine_reset(dev_priv);
 			DRM_INFO("freeing data buffer memory.\n");
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
 			drm_pci_free(dev, cpu_addr_dmah);
+#else
+			mach64_drm_pci_free(dev, cpu_addr_dmah);
+#endif
 			return -EIO;
 		}
 	}
@@ -929,7 +937,11 @@ static int mach64_bm_dma_test(struct drm_device * dev)
 		MACH64_WRITE(MACH64_PAT_REG0, pat_reg0);
 		MACH64_WRITE(MACH64_PAT_REG1, pat_reg1);
 		DRM_INFO("freeing data buffer memory.\n");
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
 		drm_pci_free(dev, cpu_addr_dmah);
+#else
+		mach64_drm_pci_free(dev, cpu_addr_dmah);
+#endif
 		return i;
 	}
 	DRM_DEBUG("waiting for idle...done\n");
@@ -965,7 +977,11 @@ static int mach64_bm_dma_test(struct drm_device * dev)
 		MACH64_WRITE(MACH64_PAT_REG0, pat_reg0);
 		MACH64_WRITE(MACH64_PAT_REG1, pat_reg1);
 		DRM_INFO("freeing data buffer memory.\n");
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
 		drm_pci_free(dev, cpu_addr_dmah);
+#else
+		mach64_drm_pci_free(dev, cpu_addr_dmah);
+#endif
 		return i;
 	}
 
@@ -993,7 +1009,11 @@ static int mach64_bm_dma_test(struct drm_device * dev)
 	MACH64_WRITE(MACH64_PAT_REG1, pat_reg1);
 
 	DRM_DEBUG("freeing data buffer memory.\n");
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
 	drm_pci_free(dev, cpu_addr_dmah);
+#else
+	mach64_drm_pci_free(dev, cpu_addr_dmah);
+#endif
 	DRM_DEBUG("returning ...\n");
 
 	return failed;
@@ -1008,6 +1028,9 @@ static int mach64_do_dma_init(struct drm_device * dev, drm_mach64_init_t * init)
 	drm_mach64_private_t *dev_priv;
 	u32 tmp;
 	int i, ret;
+#if !IS_ENABLED(CONFIG_DRM_LEGACY)
+	struct drm_local_map *agp_buffer_map;
+#endif
 
 	DRM_DEBUG("\n");
 
@@ -1043,21 +1066,33 @@ static int mach64_do_dma_init(struct drm_device * dev, drm_mach64_init_t * init)
 	INIT_LIST_HEAD(&dev_priv->placeholders);
 	INIT_LIST_HEAD(&dev_priv->pending);
 
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
 	dev_priv->sarea = drm_legacy_getsarea(dev);
+#else
+	dev_priv->sarea = mach64_drm_legacy_getsarea(dev);
+#endif
 	if (!dev_priv->sarea) {
 		DRM_ERROR("can not find sarea!\n");
 		dev->dev_private = (void *)dev_priv;
 		mach64_do_cleanup_dma(dev);
 		return -EINVAL;
 	}
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
 	dev_priv->fb = drm_legacy_findmap(dev, init->fb_offset);
+#else
+	dev_priv->fb = mach64_drm_legacy_findmap(dev, init->fb_offset);
+#endif
 	if (!dev_priv->fb) {
 		DRM_ERROR("can not find frame buffer map!\n");
 		dev->dev_private = (void *)dev_priv;
 		mach64_do_cleanup_dma(dev);
 		return -EINVAL;
 	}
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
 	dev_priv->mmio = drm_legacy_findmap(dev, init->mmio_offset);
+#else
+	dev_priv->mmio = mach64_drm_legacy_findmap(dev, init->mmio_offset);
+#endif
 	if (!dev_priv->mmio) {
 		DRM_ERROR("can not find mmio map!\n");
 		dev->dev_private = (void *)dev_priv;
@@ -1065,7 +1100,11 @@ static int mach64_do_dma_init(struct drm_device * dev, drm_mach64_init_t * init)
 		return -EINVAL;
 	}
 
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
 	dev_priv->ring_map = drm_legacy_findmap(dev, init->ring_offset);
+#else
+	dev_priv->ring_map = mach64_drm_legacy_findmap(dev, init->ring_offset);
+#endif
 	if (!dev_priv->ring_map) {
 		DRM_ERROR("can not find ring map!\n");
 		dev->dev_private = (void *)dev_priv;
@@ -1085,10 +1124,16 @@ static int mach64_do_dma_init(struct drm_device * dev, drm_mach64_init_t * init)
 			mach64_do_cleanup_dma(dev);
 			return -ENOMEM;
 		}
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
 		dev->agp_buffer_token = init->buffers_offset;
 		dev->agp_buffer_map =
 		    drm_legacy_findmap(dev, init->buffers_offset);
 		if (!dev->agp_buffer_map) {
+#else
+		agp_buffer_map =
+		    mach64_drm_legacy_findmap(dev, init->buffers_offset);
+		if (!agp_buffer_map) {
+#endif
 			DRM_ERROR("can not find dma buffer map!\n");
 			dev->dev_private = (void *)dev_priv;
 			mach64_do_cleanup_dma(dev);
@@ -1096,10 +1141,19 @@ static int mach64_do_dma_init(struct drm_device * dev, drm_mach64_init_t * init)
 		}
 		/* there might be a nicer way to do this -
 		   dev isn't passed all the way though the mach64 - DA */
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
 		dev_priv->dev_buffers = dev->agp_buffer_map;
+#else
+		dev_priv->dev_buffers = agp_buffer_map;
+#endif
 
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
 		drm_legacy_ioremap(dev->agp_buffer_map, dev);
 		if (!dev->agp_buffer_map->handle) {
+#else
+		drm_legacy_ioremap(agp_buffer_map, dev);
+		if (!agp_buffer_map->handle) {
+#endif
 			DRM_ERROR("can not ioremap virtual address for"
 				  " dma buffer\n");
 			dev->dev_private = (void *)dev_priv;
@@ -1107,7 +1161,11 @@ static int mach64_do_dma_init(struct drm_device * dev, drm_mach64_init_t * init)
 			return -ENOMEM;
 		}
 		dev_priv->agp_textures =
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
 		    drm_legacy_findmap(dev, init->agp_textures_offset);
+#else
+		    mach64_drm_legacy_findmap(dev, init->agp_textures_offset);
+#endif
 		if (!dev_priv->agp_textures) {
 			DRM_ERROR("can not find agp texture region!\n");
 			dev->dev_private = (void *)dev_priv;
@@ -1383,9 +1441,15 @@ int mach64_do_cleanup_dma(struct drm_device * dev)
 			if (dev_priv->ring_map)
 				drm_legacy_ioremapfree(dev_priv->ring_map, dev);
 
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
 			if (dev->agp_buffer_map) {
 				drm_legacy_ioremapfree(dev->agp_buffer_map, dev);
 				dev->agp_buffer_map = NULL;
+#else
+			if (dev_priv->dev_buffers) {
+				drm_legacy_ioremapfree(dev_priv->dev_buffers, dev);
+				dev_priv->dev_buffers = NULL;
+#endif
 			}
 		}
 
@@ -1412,7 +1476,7 @@ int mach64_dma_init(struct drm_device *dev, void *data,
 
 	DRM_DEBUG("\n");
 
-	LOCK_TEST_WITH_RETURN(dev, file_priv);
+	MACH64_LOCK_TEST_WITH_RETURN(dev, file_priv);
 
 	switch (init->func) {
 	case DRM_MACH64_INIT_DMA:
@@ -1431,7 +1495,7 @@ int mach64_dma_idle(struct drm_device *dev, void *data,
 
 	DRM_DEBUG("\n");
 
-	LOCK_TEST_WITH_RETURN(dev, file_priv);
+	MACH64_LOCK_TEST_WITH_RETURN(dev, file_priv);
 
 	return mach64_do_dma_idle(dev_priv);
 }
@@ -1443,7 +1507,7 @@ int mach64_dma_flush(struct drm_device *dev, void *data,
 
 	DRM_DEBUG("\n");
 
-	LOCK_TEST_WITH_RETURN(dev, file_priv);
+	MACH64_LOCK_TEST_WITH_RETURN(dev, file_priv);
 
 	return mach64_do_dma_flush(dev_priv);
 }
@@ -1455,7 +1519,7 @@ int mach64_engine_reset(struct drm_device *dev, void *data,
 
 	DRM_DEBUG("\n");
 
-	LOCK_TEST_WITH_RETURN(dev, file_priv);
+	MACH64_LOCK_TEST_WITH_RETURN(dev, file_priv);
 
 	return mach64_do_engine_reset(dev_priv);
 }
@@ -1469,7 +1533,11 @@ int mach64_engine_reset(struct drm_device *dev, void *data,
 
 int mach64_init_freelist(struct drm_device * dev)
 {
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
 	struct drm_device_dma *dma = dev->dma;
+#else
+	struct drm_device_dma *dma = MACH64_PRIVATE(dev)->dma;
+#endif
 	drm_mach64_private_t *dev_priv = dev->dev_private;
 	drm_mach64_freelist_t *entry;
 	struct list_head *ptr;
@@ -1736,11 +1804,15 @@ static int mach64_dma_get_buffers(struct drm_device *dev,
 int mach64_dma_buffers(struct drm_device *dev, void *data,
 		       struct drm_file *file_priv)
 {
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
 	struct drm_device_dma *dma = dev->dma;
+#else
+	struct drm_device_dma *dma = MACH64_PRIVATE(dev)->dma;
+#endif
 	struct drm_dma *d = data;
 	int ret = 0;
 
-	LOCK_TEST_WITH_RETURN(dev, file_priv);
+	MACH64_LOCK_TEST_WITH_RETURN(dev, file_priv);
 
 	/* Please don't send us buffers.
 	 */

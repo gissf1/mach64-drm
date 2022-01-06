@@ -784,7 +784,7 @@ int mach64_dma_clear(struct drm_device *dev, void *data,
 
 	DRM_DEBUG("pid=%d\n", task_pid_nr(current));
 
-	LOCK_TEST_WITH_RETURN(dev, file_priv);
+	MACH64_LOCK_TEST_WITH_RETURN(dev, file_priv);
 
 	if (sarea_priv->nbox > MACH64_NR_SAREA_CLIPRECTS)
 		sarea_priv->nbox = MACH64_NR_SAREA_CLIPRECTS;
@@ -809,7 +809,7 @@ int mach64_dma_swap(struct drm_device *dev, void *data,
 
 	DRM_DEBUG("pid=%d\n", task_pid_nr(current));
 
-	LOCK_TEST_WITH_RETURN(dev, file_priv);
+	MACH64_LOCK_TEST_WITH_RETURN(dev, file_priv);
 
 	if (sarea_priv->nbox > MACH64_NR_SAREA_CLIPRECTS)
 		sarea_priv->nbox = MACH64_NR_SAREA_CLIPRECTS;
@@ -829,7 +829,7 @@ int mach64_dma_vertex(struct drm_device *dev, void *data,
 	drm_mach64_sarea_t *sarea_priv = dev_priv->sarea_priv;
 	drm_mach64_vertex_t *vertex = data;
 
-	LOCK_TEST_WITH_RETURN(dev, file_priv);
+	MACH64_LOCK_TEST_WITH_RETURN(dev, file_priv);
 
 	if (!dev_priv) {
 		DRM_ERROR("called with no initialization\n");
@@ -865,7 +865,7 @@ int mach64_dma_blit(struct drm_device *dev, void *data,
 	drm_mach64_blit_t *blit = data;
 	int ret;
 
-	LOCK_TEST_WITH_RETURN(dev, file_priv);
+	MACH64_LOCK_TEST_WITH_RETURN(dev, file_priv);
 
 	ret = mach64_dma_dispatch_blit(dev, file_priv, blit);
 
@@ -894,7 +894,7 @@ int mach64_get_param(struct drm_device *dev, void *data,
 	switch (param->param) {
 	case MACH64_PARAM_FRAMES_QUEUED:
 		/* Needs lock since it calls mach64_ring_tick() */
-		LOCK_TEST_WITH_RETURN(dev, file_priv);
+		MACH64_LOCK_TEST_WITH_RETURN(dev, file_priv);
 		value = mach64_do_get_frames_queued(dev_priv);
 		break;
 	case MACH64_PARAM_IRQ_NR:

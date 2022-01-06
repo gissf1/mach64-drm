@@ -68,7 +68,11 @@ static const struct file_operations mach64_driver_fops = {
 	.open = drm_open,
 	.release = drm_release,
 	.unlocked_ioctl = drm_ioctl,
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
 	.mmap = drm_legacy_mmap,
+#else
+	.mmap = mach64_drm_legacy_mmap,
+#endif
 	.poll = drm_poll,
 	.llseek = noop_llseek,
 };
@@ -104,12 +108,20 @@ static struct pci_driver mach64_pci_driver = {
 static int __init mach64_init(void)
 {
 	driver.num_ioctls = mach64_max_ioctl;
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
 	return drm_legacy_pci_init(&driver, &mach64_pci_driver);
+#else
+	return mach64_drm_legacy_pci_init(&driver, &mach64_pci_driver);
+#endif
 }
 
 static void __exit mach64_exit(void)
 {
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
 	drm_legacy_pci_exit(&driver, &mach64_pci_driver);
+#else
+	mach64_drm_legacy_pci_exit(&driver, &mach64_pci_driver);
+#endif
 }
 
 module_init(mach64_init);

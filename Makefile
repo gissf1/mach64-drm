@@ -5,7 +5,7 @@
 KSRC=/lib/modules/`uname -r`/build
 
 ccflags-y := -Iinclude/drm
-mach64-y := mach64_drv.o mach64_dma.o mach64_irq.o mach64_state.o
+mach64-y := mach64_drv.o mach64_drm_nolegacy.o mach64_dma.o mach64_irq.o mach64_state.o
 obj-m := mach64.o
 
 default:

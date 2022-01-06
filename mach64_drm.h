@@ -253,4 +253,27 @@ typedef struct drm_mach64_getparam {
 	void *value;
 } drm_mach64_getparam_t;
 
+#include "mach64_drm_nolegacy.h"
+#if IS_ENABLED(CONFIG_DRM_LEGACY)
+	#define MACH64_LOCK_TEST_WITH_RETURN( dev, _file_priv ) LOCK_TEST_WITH_RETURN( dev, _file_priv )
+#else
+/**
+ * Test that the hardware lock is held by the caller, returning otherwise.
+ *
+ * \param dev DRM device.
+ * \param filp file pointer of the caller.
+ *
+ * returns -EINVAL when lock is not held
+ */
+#define MACH64_LOCK_TEST_WITH_RETURN( dev, _file_priv )				\
+do {										\
+	if (mutex_is_locked(&dev->master_mutex) && drm_is_current_master(_file_priv)) {	\
+		DRM_ERROR( "%s called without lock held, held  %d owner %p %p\n",\
+			   __func__, _DRM_LOCK_IS_HELD(((drm_mach64_private_t*)_file_priv->master->driver_priv)->lock.hw_lock->lock),\
+			   ((drm_mach64_private_t*)_file_priv->master->driver_priv)->lock.file_priv, _file_priv);	\
+		return -EINVAL;							\
+	}									\
+} while (0)
+#endif
+
 #endif

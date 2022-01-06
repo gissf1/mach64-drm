@@ -41,6 +41,7 @@
 #include <drm/drm_print.h>
 #include <drm/drm_ioctl.h>
 #include <drm/drm_irq.h>
+#include <asm-generic/io.h>
 
 /* General customization:
  */
@@ -115,7 +116,31 @@ typedef struct drm_mach64_private {
 	drm_local_map_t *ring_map;
 	drm_local_map_t *dev_buffers;	/* this is a pointer to a structure in dev */
 	drm_local_map_t *agp_textures;
+
+#if !IS_ENABLED(CONFIG_DRM_LEGACY)
+	/* this is a workaround for missing CONFIG_DRM_LEGACY */
+
+	/* lock is added here since it is now missing from drm_master */
+	struct drm_lock_data lock;
+
+	/* Memory management - linked list of regions */
+	struct list_head maplist;
+
+	/* Memory management - user token hash table for maps */
+	struct drm_open_hash map_hash;
+
+	/* Context handle management - list of vmas (for debugging) */
+	struct list_head vmalist;
+
+	/* Optional pointer for DMA support */
+	struct drm_device_dma *dma;
+
+	/* Scatter gather memory */
+	struct drm_sg_mem *sg;
+#endif
 } drm_mach64_private_t;
+
+#define MACH64_PRIVATE(dev) ((drm_mach64_private_t*)dev->dev_private)
 
 extern struct drm_ioctl_desc mach64_ioctls[];
 extern int mach64_max_ioctl;
